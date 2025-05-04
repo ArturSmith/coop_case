@@ -1,3 +1,5 @@
+import 'package:coop_case/data/service/models/openin_hours_dto.dart';
+
 class StoreDto {
   final String name;
   final String address;
@@ -5,7 +7,7 @@ class StoreDto {
   final String city;
   final String chain;
   final String url;
-  final Map<String, String> openingHours;
+  final List<OpeningHoursDto> openingHours;
   final double? latitude;
   final double? longitude;
 
@@ -22,22 +24,14 @@ class StoreDto {
   });
 
   factory StoreDto.fromJson(Map<String, dynamic> json) {
-    final opening = <String, String>{};
-
-    final openingHours = json['openingHours'] as List<dynamic>?;
-    if (openingHours != null) {
-      for (final day in openingHours) {
-        final dayOfWeek = day['dayOfWeek']?.toString() ?? 'Unknown';
-        final isClosed = day['closed'] == true;
-        final from = day['from1'] ?? '';
-        final to = day['to1'] ?? '';
-        final time = isClosed ? 'Closed' : '$from - $to';
-        opening[dayOfWeek] = time;
-      }
-    }
-
     final address = json['address'] as Map<String, dynamic>? ?? {};
     final location = json['location'] as Map<String, dynamic>?;
+
+    final openingList =
+        (json['openingHours'] as List<dynamic>?)
+            ?.map((e) => OpeningHoursDto.fromJson(e))
+            .toList() ??
+        [];
 
     return StoreDto(
       name: json['title'] ?? '',
@@ -46,7 +40,7 @@ class StoreDto {
       city: address['city'] ?? '',
       chain: json['chainDisplayName'] ?? '',
       url: json['url'] ?? '',
-      openingHours: opening,
+      openingHours: openingList,
       latitude: location?['latitude']?.toDouble(),
       longitude: location?['longitude']?.toDouble(),
     );

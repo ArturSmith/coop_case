@@ -1,3 +1,5 @@
+import 'package:coop_case/domain/entity/opening_hour.dart';
+
 class Store {
   final String name;
   final String address;
@@ -5,7 +7,7 @@ class Store {
   final String city;
   final String chain;
   final String url;
-  final Map<String, String> openingHours;
+  final List<OpeningHours> openingHours;
   final double? latitude;
   final double? longitude;
 

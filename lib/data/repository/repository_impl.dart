@@ -1,9 +1,9 @@
-import 'package:coop_case/data/service/api/ApiService.dart';
-import 'package:coop_case/data/service/mapper/StoreMap.dart';
-import 'package:coop_case/data/service/models/StoreDto.dart';
-import 'package:coop_case/domain/entity/Result.dart';
-import 'package:coop_case/domain/entity/Store.dart';
-import 'package:coop_case/domain/repository/Repository.dart';
+import 'package:coop_case/data/service/api/api_service.dart';
+import 'package:coop_case/data/service/mapper/store_map.dart';
+import 'package:coop_case/data/service/models/store_dto.dart';
+import 'package:coop_case/domain/entity/result.dart';
+import 'package:coop_case/domain/entity/store.dart';
+import 'package:coop_case/domain/repository/repository.dart';
 
 class RepositoryImpl extends Repository {
   final ApiService _apiService;
@@ -17,11 +17,9 @@ class RepositoryImpl extends Repository {
     switch (result) {
       case Success<List<StoreDto>>():
         final data = result.data;
-        print("DATA check: $data");
         final stores = data.map((dto) => dto.toEntity()).toList();
         return Success(stores);
       case Failure<List<StoreDto>>():
-        print("DATA check 2: ${result.message}");
         return Failure(result.message);
     }
   }

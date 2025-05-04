@@ -1,35 +1,39 @@
-import 'package:coop_case/domain/entity/Store.dart';
+import 'package:coop_case/domain/entity/store.dart';
+import 'package:coop_case/utils/custom_url_launcher.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-class StoreViewModel extends ChangeNotifier {
-  final Store _store;
-  Store get store => _store;
+class StoreViewModel {
+  final CustomUrlLauncher _launcher;
 
-  StoreViewModel({required Store store}) : _store = store;
+  final Store store;
 
-  String? _snackbarMessage;
-  String? get snackbarMessage => _snackbarMessage;
+  StoreViewModel({required this.store, required CustomUrlLauncher launcher})
+    : _launcher = launcher;
 
-  void launchStore() async {
-    final localUrl = Uri.tryParse(_store.url);
+  final ValueNotifier<String?> snackbarMessage = ValueNotifier(null);
+
+  Future<void> launchStore() async {
+    final Uri? localUrl = _launcher.tryParseUri(store.url);
 
     if (localUrl == null) {
-      _snackbarMessage = "Error while launching, try again.";
-      notifyListeners();
+      _showMessage("Invalid URL. Please try again.");
       return;
     }
 
-    final canLaunch = await canLaunchUrl(localUrl);
-
+    final canLaunch = await _launcher.canLaunch(localUrl);
     if (!canLaunch) {
-      _snackbarMessage = "Unable to launch";
-      notifyListeners();
+      _showMessage("Unable to launch the store web page.");
       return;
     }
 
-    if (canLaunch) {
-      await launchUrl(localUrl);
-    } else {}
+    await _launcher.launch(localUrl);
+  }
+
+  void _showMessage(String message) {
+    snackbarMessage.value = message;
+  }
+
+  void clearMessage() {
+    snackbarMessage.value = null;
   }
 }

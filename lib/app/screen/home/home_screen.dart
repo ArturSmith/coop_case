@@ -1,7 +1,7 @@
+import 'package:coop_case/app/screen/home/home_screen_state.dart';
 import 'package:coop_case/app/screen/home/home_view_model.dart';
 import 'package:coop_case/app/screen/store/store_screen.dart';
-import 'package:coop_case/domain/entity/Store.dart';
-import 'package:coop_case/domain/usecase/SearchStoresUseCase.dart';
+import 'package:coop_case/domain/entity/store.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,51 +9,31 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => ChangeNotifierProvider(
-    create:
-        (contex) => HomeViewModel(
-          searchStoresUseCase: contex.read<SearchStoresUseCase>(),
-        ),
-    child: Scaffold(body: _HomeScreenBody()),
-  );
+  Widget build(BuildContext context) {
+    return Provider(
+      lazy: true,
+      create: (context) => HomeViewModel(searchStoresUseCase: context.read()),
+      child: const _HomeScreenBody(),
+    );
+  }
 }
 
-class _HomeScreenBody extends StatefulWidget {
+class _HomeScreenBody extends StatelessWidget {
   const _HomeScreenBody();
 
   @override
-  State<_HomeScreenBody> createState() => __HomeScreenBodyState();
-}
-
-class __HomeScreenBodyState extends State<_HomeScreenBody> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
   Widget build(BuildContext context) {
-    final model = context.read<HomeViewModel>();
-
-    final bool isLoading = context.watch<HomeViewModel>().isLoading;
-    final List<Store> stores = context.watch<HomeViewModel>().stores;
-    final String? error = context.watch<HomeViewModel>().error;
-
-    if (error != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error)));
-      });
-    }
+    final viewModel = context.watch<HomeViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Coop Store Finder")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
-              controller: _controller,
+              controller: viewModel.controller,
               decoration: const InputDecoration(
-                hintText: "Enter shop zip\\name",
+                hintText: "Enter shop zip or name",
                 border: OutlineInputBorder(),
               ),
             ),
@@ -61,19 +41,17 @@ class __HomeScreenBodyState extends State<_HomeScreenBody> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  model.searchStores(_controller.text);
-                },
-                child: const Text("Search"),
+                style: ElevatedButton.styleFrom(elevation: 10),
+                onPressed:
+                    () => viewModel.searchStores(viewModel.controller.text),
+                child: const Text(
+                  "Search",
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child:
-                  isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _StoresListView(stores: stores),
-            ),
+            const Expanded(child: _Content()),
           ],
         ),
       ),
@@ -81,32 +59,65 @@ class __HomeScreenBodyState extends State<_HomeScreenBody> {
   }
 }
 
-class _StoresListView extends StatelessWidget {
-  const _StoresListView({required List<Store> stores}) : _stores = stores;
+class _Content extends StatelessWidget {
+  const _Content();
 
-  final List<Store> _stores;
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: _stores.length,
-      itemBuilder: (context, index) {
-        final store = _stores[index];
-        return _StoreCard(store: store);
+    return ValueListenableBuilder<HomeState>(
+      valueListenable: context.watch<HomeViewModel>().state,
+      builder: (context, state, _) {
+        switch (state) {
+          case HomeInitial():
+            return const SizedBox();
+          case HomeLoading():
+            return const Center(child: CircularProgressIndicator());
+          case HomeError():
+            return Center(child: Text(state.message));
+          case HomeLoaded():
+            return _StoresListView(stores: state.stores);
+        }
       },
     );
   }
 }
 
+class _StoresListView extends StatelessWidget {
+  final List<Store> stores;
+
+  const _StoresListView({required this.stores});
+
+  @override
+  Widget build(BuildContext context) {
+    return stores.isNotEmpty
+        ? ListView.builder(
+          itemCount: stores.length,
+          itemBuilder: (context, index) {
+            return _StoreCard(store: stores[index]);
+          },
+        )
+        : const Center(
+          child: Text(
+            "Empty list",
+            style: TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+        );
+  }
+}
+
 class _StoreCard extends StatelessWidget {
-  const _StoreCard({required Store store}) : _store = store;
-  final Store _store;
+  final Store store;
+
+  const _StoreCard({required this.store});
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => StoreScreen(store: _store)),
+          MaterialPageRoute(builder: (_) => StoreScreen(store: store)),
         );
       },
       child: Card(
@@ -121,8 +132,8 @@ class _StoreCard extends StatelessWidget {
               ),
               child: Image.asset(
                 'assets/images/coop.png',
-                height: 180,
                 fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => const Placeholder(),
               ),
             ),
             Padding(
@@ -130,10 +141,9 @@ class _StoreCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    constraints: BoxConstraints(maxWidth: 200),
+                  Flexible(
                     child: Text(
-                      _store.name,
+                      store.name,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -142,16 +152,17 @@ class _StoreCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Container(
-                    constraints: BoxConstraints(maxWidth: 200),
+                  const SizedBox(width: 8),
+                  Flexible(
                     child: Text(
-                      _store.city,
+                      store.city,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
                     ),
                   ),
                 ],
