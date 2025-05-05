@@ -1,6 +1,6 @@
 # coop_case
 
-Case project for coop.
+The application allows you to find a store of COOP chain by zip code, name or address.
 
 ## Getting Started
 
