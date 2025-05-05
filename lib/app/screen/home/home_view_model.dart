@@ -16,22 +16,26 @@ class HomeViewModel {
 
   Future<void> searchStores(String query) async {
     if (query.trim().isEmpty) {
-      state.value = HomeError("Enter store zip or name");
+      _setState(HomeError("Enter store zip or name"));
       return;
     }
 
-    state.value = HomeLoading();
+    _setState(HomeLoading());
 
     final result = await _searchStoresUseCase.searchStores(query.trim());
 
     if (result is Success<List<Store>>) {
       if (result.data.isEmpty) {
-        state.value = HomeError("Stores not found");
+        _setState(HomeError("Stores not found"));
       } else {
-        state.value = HomeLoaded(result.data);
+        _setState(HomeLoaded(result.data));
       }
     } else if (result is Failure<List<Store>>) {
-      state.value = HomeError(result.message);
+      _setState(HomeError(result.message));
     }
+  }
+
+  void _setState(HomeState state) {
+    this.state.value = state;
   }
 }
